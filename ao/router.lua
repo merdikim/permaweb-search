@@ -1,1 +1,0 @@
---this will be the main router file to channel requests to the appropriate curators 

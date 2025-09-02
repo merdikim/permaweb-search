@@ -55,20 +55,33 @@ Handlers.add("index-transaction", function(msg)
     max_tokens = 30000
   }
 
-  ApusAI.infer(prompt, options, function(err, result)
+  ApusAI.infer(prompt, options, function(err, res)
     if err then
       print("Error during inference: " .. err)
       return
     end
-    table.insert(dataset, result.data)
-    print(result.data)
+    local result = res.data
+    local cleanedResult = result:gsub("```lua", ""):gsub("```", "")
+    cleanedResult = cleanedResult:match("^%s*(.-)%s*$")
+    local parsedTable = load("return " .. cleanedResult)()
+    table.insert(dataset, parsedTable)
+    print(parsedTable)
   end)
 end)
 
-Handlers.add("Search", function(msg)
+Handlers.add("search", function(msg)
   assert(msg.Data, "No search query provided")
+  print("Searching for: " .. msg.Data)
   local result = m.search_table(msg.Data)
-  print(json.encode(result))
+  Send({
+    Target = ao.id,
+    Action = msg.Tags.Action .. "-response",
+    Data = json.encode(result)
+  })
+end)
+
+Handlers.add("info", function(msg)
+  print(json.encode(dataset))
 end)
 
 
@@ -79,58 +92,60 @@ end
 
 
 function m.search_table(query)
-    local results = {}
-    local query_lower = string.lower(query)
+  local results = {}
+  local query_lower = string.lower(query)
+
+  print(dataset)
     
-    for i, entry in ipairs(dataset) do
-        local match = false
-        local score = 0
+  for i, entry in ipairs(dataset) do
+    local match = false
+    local score = 0
         
-        local text_fields = {"summary", "contentType", "language"}
-        for _, field in ipairs(text_fields) do
-            if entry[field] and type(entry[field]) == "string" then
-                if string.lower(entry[field]):find(query_lower, 1, true) then
-                    match = true
-                    score = score + (field == "summary" and 3 or 1)  -- Summary gets higher weight
-                end
-            end
+    local text_fields = {"summary", "contentType", "language"}
+    for _, field in ipairs(text_fields) do
+      if entry[field] and type(entry[field]) == "string" then
+        if string.lower(entry[field]):find(query_lower, 1, true) then
+          match = true
+          score = score + (field == "summary" and 3 or 1)  -- Summary gets higher weight
         end
-        
-        local array_fields = {"keywords", "topics", "tags"}
-        for _, field in ipairs(array_fields) do
-            if entry[field] and m.contains_value(entry[field], query) then
-                match = true
-                score = score + 2  -- Array matches get medium weight
-            end
-        end
-        
-        if entry.id and entry.id == query then
-            match = true
-            score = score + 10  -- Exact ID match gets highest score
-        end
-        
-        if match then
-            table.insert(results, {
-                index = i,
-                entry = entry,
-                score = score
-            })
-        end
+      end
     end
+        
+    local array_fields = {"keywords", "topics", "tags"}
+    for _, field in ipairs(array_fields) do
+      if entry[field] and m.contains_value(entry[field], query) then
+        match = true
+        score = score + 2  -- Array matches get medium weight
+      end
+    end
+        
+    if entry.id and entry.id == query then
+      match = true
+      score = score + 10  -- Exact ID match gets highest score
+    end
+        
+    if match then
+      table.insert(results, {
+        index = i,
+        entry = entry,
+        score = score
+      })
+    end
+  end
     
-    -- Sort by relevance score (highest first)
-    table.sort(results, function(a, b) return a.score > b.score end)
+  -- Sort by relevance score (highest first)
+  table.sort(results, function(a, b) return a.score > b.score end)
     
-    return results
+  return results
 end
 
 function m.contains_value(array, value)
-    if type(array) ~= "table" then return false end
+  if type(array) ~= "table" then return false end
     
-    for _, v in ipairs(array) do
-        if type(v) == "string" and string.lower(v):find(string.lower(value), 1, true) then
-            return true
-        end
+  for _, v in ipairs(array) do
+    if type(v) == "string" and string.lower(v):find(string.lower(value), 1, true) then
+      return true
     end
-    return false
+  end
+  return false
 end

@@ -1,32 +1,21 @@
-import { useState } from 'react'
-import { createDataItemSigner, message } from '@permaweb/aoconnect'
 import search_icon from './assets/search.svg'
-import loader_icon from './assets/loader.svg'
-import { process } from './utils'
+import { useNavigate } from '@tanstack/react-router'
+import { quotes } from './utils'
 
 function App() {
-  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault()
     const searchInput = (document.getElementById('searchBox') as HTMLInputElement)
-  
-    const tags = [{ name: 'Action', value: 'Search' }]
 
     if (!searchInput.value) {
       return console.log('Please enter a search query')
     }
-    setLoading(true)
-    const messageId = await message({
-      process,
-      // @ts-expect-error
-      signer: createDataItemSigner(window.arweaveWallet),
-      tags,
-      data: searchInput.value
+    navigate({ 
+      to: '/$query', 
+      params: { query: searchInput.value }, 
     })
-    setLoading(false)
-    console.log('Message ID:', messageId)
-    searchInput.value = ''
   }
 
   return (
@@ -49,18 +38,16 @@ function App() {
             type="submit"
             onClick={handleSearch}
             className="absolute cursor-pointer right-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-google-blue hover:opacity-80 transition-opacity"
-            disabled={loading}
           >
             <img
-              src={loading ? loader_icon : search_icon}
+              src={search_icon}
               alt="search"
-              className={loading ? 'animate-spin' : ''}
             />
           </button>
         </form>
 
-        <div className="flex gap-4 mb-8">
-          this page will hold some quotes or something like that
+        <div className="flex gap-4 mb-8 text-xs md:text-sm text-center px-5 text-gray-400 italic animate-fade-in-slow mt-44">
+          " {quotes[Math.floor(Math.random() * quotes.length)]} "
         </div>
       </main>
     </div>

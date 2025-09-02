@@ -1,5 +1,5 @@
 local json = require('json')
-local indexer = ""
+local indexer = "T3ZC9Qix3wYDwLrID5adSOW5AY1lhtJE1sH487C3iFE"
 
 DataTypes = {
     text  = {"text/plain", "text/html", "application/json", "text/csv", "text/markdown", "application/pdf"},
@@ -35,17 +35,12 @@ Handlers.add("set-new-transactions", function(msg)
         local result = json.decode(msg.body)
         print("last cursor:", last_cursor)
         print("New cursor:", result.next_cursor)
-        -- send({
-        --     target = id,
-        --     action = 'index-transaction',
-        --     ['relay-path'] = relay_url,
-        --     data = json.encode(result.transactions)
-        -- })
-        -- for index, data in ipairs(result.transactions) do
-        --     table.insert(dataset, data)
-        -- end
+        send({
+            target = indexer,
+            action = 'index-transaction',
+            data = json.encode(result.transactions)
+        })
     else
         print("No transactions received.")
     end
-    --print(dataset)
 end)

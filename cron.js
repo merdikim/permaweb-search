@@ -1,4 +1,9 @@
 import { Client, cacheExchange, fetchExchange, gql } from 'urql';
+import { message, createSigner } from '@permaweb/aoconnect/node'
+
+import fs from "fs"
+
+const wallet = fs.readFileSync('./wallet.json')
 
 const client = new Client({
 	url: 'https://arweave.net/graphql',
@@ -29,16 +34,15 @@ const QUERY = gql`
 	}
 `;
 
-// Serverless function handler
-export default {
-	async fetch(request, env, ctx) {
-		let after = null;
+
+let after = null;
+
+
+const fetchData = async() => {
+
+
 		let dataType = 'text/markdown';
-		if (request.method == 'POST') {
-			const body = await request.json();
-			dataType = body.data_type || dataType;
-			after = body.cursor || null;
-		}
+
 
 		const result = await client.query(QUERY, { after, value: dataType }).toPromise();
 
@@ -46,14 +50,14 @@ export default {
 
 		const serializedEdges = await Promise.all(
 			edges.map(async (edge) => {
+				after = edge.cursor
 				const fetchResult = await fetch(`https://arweave.net/${edge.node.id}`);
 				if (!fetchResult.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 				const text = await fetchResult.text();
 				return {
 					id: edge.node.id,
 					// extract content type from tags
-					// contentType: edge.node.tags.find(tag => tag.name === "Content-Type")?.value || "unknown",
-					// blockHeight: edge.node.block.height,
+					contentType: edge.node.tags.find(tag => tag.name === "Content-Type")?.value || "unknown",
 					timestamp: edge.node.block.timestamp,
 					ownerAddress: edge.node.owner.address,
 					tags: edge.node.tags.reduce((acc, tag) => {
@@ -65,14 +69,16 @@ export default {
 			}),
 		);
 
-		return new Response(
-			JSON.stringify({
-				transactions: serializedEdges,
-				next_cursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
-			}),
-			{
-				headers: { 'Content-Type': 'application/json' },
-			},
-		);
-	},
-};
+		const tags = [{ name: "Action", value: "index-transaction" }]
+
+		await message({
+		  process: "T3ZC9Qix3wYDwLrID5adSOW5AY1lhtJE1sH487C3iFE",
+		  signer: createSigner(JSON.parse(wallet)),
+		  tags,
+		  data: JSON.stringify(serializedEdges[0])
+		})
+
+		console.log('another one indexed')
+}
+
+setInterval(fetchData, 12000)
