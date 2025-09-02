@@ -10,11 +10,11 @@ import {
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 import './styles.css'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import reportWebVitals from './reportWebVitals.ts'
 
 import App from './App.tsx'
 import Query from './Query.tsx'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const queryClient = new QueryClient()
 
@@ -62,7 +62,7 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </StrictMode>,
   )

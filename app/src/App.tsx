@@ -1,5 +1,5 @@
-import search_icon from './assets/search.svg'
 import { useNavigate } from '@tanstack/react-router'
+import search_icon from './assets/search.svg'
 import { quotes } from './utils'
 
 function App() {
@@ -7,14 +7,14 @@ function App() {
 
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault()
-    const searchInput = (document.getElementById('searchBox') as HTMLInputElement)
+    const searchInput = document.getElementById('searchBox') as HTMLInputElement
 
     if (!searchInput.value) {
       return console.log('Please enter a search query')
     }
-    navigate({ 
-      to: '/$query', 
-      params: { query: searchInput.value }, 
+    navigate({
+      to: '/$query',
+      params: { query: searchInput.value },
     })
   }
 
@@ -39,10 +39,7 @@ function App() {
             onClick={handleSearch}
             className="absolute cursor-pointer right-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-google-blue hover:opacity-80 transition-opacity"
           >
-            <img
-              src={search_icon}
-              alt="search"
-            />
+            <img src={search_icon} alt="search" />
           </button>
         </form>
 
